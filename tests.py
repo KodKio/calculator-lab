@@ -2,6 +2,7 @@ import unittest
 import math
 from calc import *
 
+
 class TestParser(unittest.TestCase):
 
     def test_single_number(self):
@@ -64,6 +65,46 @@ class TestParser(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_expression("0; import os; os.system('echo hello')")
 
+    def test_parse_functions(self):
+        node = parse_expression("sqrt(4)")
+        self.assertIsInstance(node, Sqrt)
+        self.assertEqual(node.evaluate(), 2)
+
+        node = parse_expression("ln(e)")
+        self.assertIsInstance(node, Ln)
+        self.assertAlmostEqual(node.evaluate(), 1)
+
+        node = parse_expression("exp(1)")
+        self.assertIsInstance(node, Exp)
+        self.assertAlmostEqual(node.evaluate(), math.e)
+
+    def test_parse_constants(self):
+        node = parse_expression("pi")
+        self.assertIsInstance(node, Pi)
+        self.assertAlmostEqual(node.evaluate(), math.pi)
+
+        node = parse_expression("e")
+        self.assertIsInstance(node, E)
+        self.assertAlmostEqual(node.evaluate(), math.e)
+
+    def test_parse_trigonometric_functions(self):
+        node = parse_expression("sin(pi/2)")
+        self.assertIsInstance(node, Sin)
+        self.assertAlmostEqual(node.evaluate(), 1)
+
+        node = parse_expression("cos(0)")
+        self.assertIsInstance(node, Cos)
+        self.assertAlmostEqual(node.evaluate(), 1)
+
+        node = parse_expression("tg(pi/4)")
+        self.assertIsInstance(node, Tg)
+        self.assertAlmostEqual(node.evaluate(), 1)
+
+        node = parse_expression("ctg(pi/4)")
+        self.assertIsInstance(node, Ctg)
+        self.assertAlmostEqual(node.evaluate(), 1)
+
+
 class TestEvaluator(unittest.TestCase):
 
     def test_plus(self):
@@ -87,6 +128,34 @@ class TestEvaluator(unittest.TestCase):
         result = Div(Number(1e300), Number(1e-300)).evaluate()
         self.assertTrue(math.isinf(result), "Expected result to be infinity due to overflow")
 
+    def test_evaluate_sqrt(self):
+        expr = Sqrt(Number(4))
+        self.assertEqual(expr.evaluate(), 2)
+
+    def test_evaluate_ln(self):
+        expr = Ln(E())
+        self.assertAlmostEqual(expr.evaluate(), 1)
+
+    def test_evaluate_exp(self):
+        expr = Exp(Number(1))
+        self.assertAlmostEqual(expr.evaluate(), math.e)
+
+    def test_evaluate_sin(self):
+        expr = Sin(Pi())
+        self.assertAlmostEqual(expr.evaluate(), 0)
+
+    def test_evaluate_cos(self):
+        expr = Cos(Number(0))
+        self.assertAlmostEqual(expr.evaluate(), 1)
+
+    def test_evaluate_tg(self):
+        expr = Tg(Pi())
+        self.assertAlmostEqual(expr.evaluate(), 0)
+
+    def test_evaluate_ctg(self):
+        expr = Ctg(Div(Pi(),  Number(2)))
+        self.assertAlmostEqual(expr.evaluate(), 0)
+
 class TestIntegration(unittest.TestCase):
 
     def test_integration(self):
@@ -99,6 +168,25 @@ class TestIntegration(unittest.TestCase):
     def test_integration_parser_error(self):
         result = evaluate_expression("1/")
         self.assertEqual(result, "Parser error: Invalid number at position 2.")
+
+    def test_functions(self):
+        self.assertAlmostEqual(evaluate_expression("sqrt(ln(e))"), 1)
+        self.assertAlmostEqual(evaluate_expression("exp(ln(2))"), 2)
+        self.assertAlmostEqual(evaluate_expression("ln(exp(2))"), 2)
+        self.assertAlmostEqual(evaluate_expression("ln(e^2)"), 2)
+
+    def test_trigonometric_functions_radian(self):
+        self.assertAlmostEqual(evaluate_expression("sin(pi/2)"), 1)
+        self.assertAlmostEqual(evaluate_expression("cos(0)"), 1)
+        self.assertAlmostEqual(evaluate_expression("tg(pi/4)"), 1)
+        self.assertAlmostEqual(evaluate_expression("ctg(pi/4)"), 1)
+
+    def test_trigonometric_functions_degree(self):
+        self.assertAlmostEqual(evaluate_expression("sin(90)", angle_unit='degree'), 1)
+        self.assertAlmostEqual(evaluate_expression("cos(0)", angle_unit='degree'), 1)
+        self.assertAlmostEqual(evaluate_expression("tg(45)", angle_unit='degree'), 1)
+        self.assertAlmostEqual(evaluate_expression("ctg(45)", angle_unit='degree'), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

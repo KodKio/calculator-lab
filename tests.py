@@ -1,6 +1,107 @@
 import unittest
 import math
 from calc import *
+import subprocess
+import time
+
+
+class TestCalculatorPerformance(unittest.TestCase):
+
+    def run_calc(self, expression):
+        """Helper function to run the calc command with specified expression."""
+        start_time = time.time()
+        result = subprocess.run(['python', 'calc.py', expression], capture_output=True, text=True)
+        end_time = time.time()
+        duration = end_time - start_time
+        return result.stdout.strip(), result.returncode, duration
+
+    def test_long_addition(self):
+        expression = " + ".join(["1"] * 250)
+        output, returncode, duration = self.run_calc(expression)
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertEqual(result_value, 250.0)
+        self.assertLessEqual(duration, 0.3)
+
+    def test_long_addition_with_error(self):
+        expression = " + ".join(["1"] * 250) + " +"
+        output, returncode, duration = self.run_calc(expression)
+        self.assertNotEqual(returncode, 0)
+        self.assertIn("error", output.lower())
+        self.assertLessEqual(duration, 0.3)
+
+    def test_large_numbers(self):
+        expression = "+".join(["1e100"] * 4)
+        output, returncode, duration = self.run_calc(expression)
+        self.assertEqual(returncode, 0)
+        self.assertEqual(output.split(":")[1].strip(), "4e+100")
+        self.assertLessEqual(duration, 0.3)
+
+    def test_large_exponent(self):
+        expression = "1 ^ 36893488147419103232"
+        output, returncode, duration = self.run_calc(expression)
+        print(output)
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertEqual(result_value, 1.0)  # Приведение к float для сравнения
+
+    def test_very_long_expression(self):
+        expression = "+".join(["1"] * 900)
+        output, returncode, duration = self.run_calc(expression)
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertEqual(result_value, 900.0)
+        self.assertLessEqual(duration, 0.5)
+
+
+class TestCalculatorCLI(unittest.TestCase):
+
+    def run_calc(self, args):
+        """Helper function to run the calc command with specified arguments."""
+        result = subprocess.run(['python', 'calc.py'] + args, capture_output=True, text=True)
+        return result.stdout.strip(), result.returncode
+
+    def test_sin_degree(self):
+        output, returncode = self.run_calc(['--angle-unit=degree', 'sin(90)'])
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertAlmostEqual(result_value, 1)
+
+    def test_sin_radian(self):
+        output, returncode = self.run_calc(['--angle-unit=radian', 'sin(pi/2)'])
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertAlmostEqual(result_value, 1)
+
+    def test_sin_default(self):
+        output, returncode = self.run_calc(['sin(pi/2)'])
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertAlmostEqual(result_value, 1)
+
+    def test_sqrt_expression(self):
+        output, returncode = self.run_calc(['sqrt(2^2 * 5 + 1)'])
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertAlmostEqual(result_value, 4.58257569495584)
+
+    def test_exp_ln(self):
+        output, returncode = self.run_calc(['exp(ln(2))'])
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertAlmostEqual(result_value, 2)
+
+    def test_ln_exp(self):
+        output, returncode = self.run_calc(['ln(exp(2))'])
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertAlmostEqual(result_value, 2)
+
+    def test_ln_e_squared(self):
+        output, returncode = self.run_calc(['ln(e^2)'])
+        self.assertEqual(returncode, 0)
+        result_value = float(output.split(":")[1].strip())
+        self.assertAlmostEqual(result_value, 2)
 
 
 class TestParser(unittest.TestCase):
@@ -153,8 +254,9 @@ class TestEvaluator(unittest.TestCase):
         self.assertAlmostEqual(expr.evaluate(), 0)
 
     def test_evaluate_ctg(self):
-        expr = Ctg(Div(Pi(),  Number(2)))
+        expr = Ctg(Div(Pi(), Number(2)))
         self.assertAlmostEqual(expr.evaluate(), 0)
+
 
 class TestIntegration(unittest.TestCase):
 

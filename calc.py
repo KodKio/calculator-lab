@@ -1,4 +1,6 @@
 import math
+import sys
+import argparse
 
 
 class Node:
@@ -277,17 +279,25 @@ def evaluate_expression(expression, angle_unit='radian'):
         return f"Parser error: {e}"
 
 
-if __name__ == "__main__":
-    import sys
+def main():
+    parser = argparse.ArgumentParser(description="Calculator")
+    parser.add_argument("expression", type=str, help="The mathematical expression to evaluate.")
+    parser.add_argument("--angle-unit", type=str, choices=["degree", "radian"], default="radian",
+                        help="The unit for angles in trigonometric functions (default: radian).")
 
-    if len(sys.argv) != 2:
-        print("Usage: python calculator.py '<expression>'")
-        sys.exit(1)
+    args = parser.parse_args()
 
-    expression = sys.argv[1]
-    result = evaluate_expression(expression)
+    result = evaluate_expression(args.expression, angle_unit=args.angle_unit)
 
     if result is not None:
-        print(f"Result: {result}")
+        if type(result) is float:
+            print(f"Result: {result}")
+        else:
+            print(result)
+            sys.exit(1)
     else:
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
